@@ -1,0 +1,1057 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="An interactive projectile trajectory simulator.">
+  <title>Projectile Lab</title>
+  <style>
+    :root {
+      --page: #eef4fb;
+      --surface: #ffffff;
+      --surface-soft: #f7faff;
+      --ink: #13233a;
+      --muted: #5d6d81;
+      --border: #d5e0ed;
+      --grid: #dbe5f0;
+      --axis: #56677a;
+      --trajectory: #e05263;
+      --trajectory-dark: #a92940;
+      --launch: #1769aa;
+      --apex: #7a4aa5;
+      --success: #18735f;
+      --focus: #1c78c0;
+      --shadow: 0 18px 45px rgba(30, 62, 96, 0.12);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      min-width: 320px;
+      min-height: 100vh;
+      margin: 0;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 10% 0%, rgba(80, 157, 221, 0.18), transparent 29rem),
+        linear-gradient(145deg, #f8fbff 0%, var(--page) 100%);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    button,
+    input {
+      font: inherit;
+    }
+
+    button {
+      cursor: pointer;
+    }
+
+    .app-shell {
+      width: min(1280px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 34px 0 46px;
+    }
+
+    .app-header {
+      display: flex;
+      align-items: end;
+      justify-content: space-between;
+      gap: 24px;
+      margin-bottom: 24px;
+    }
+
+    .eyebrow {
+      margin: 0 0 8px;
+      color: var(--launch);
+      font-size: 0.76rem;
+      font-weight: 800;
+      letter-spacing: 0.13em;
+      text-transform: uppercase;
+    }
+
+    h1,
+    h2,
+    h3,
+    p {
+      margin-top: 0;
+    }
+
+    h1 {
+      margin-bottom: 8px;
+      font-size: clamp(2rem, 4vw, 3.15rem);
+      letter-spacing: -0.055em;
+      line-height: 1;
+    }
+
+    .intro {
+      max-width: 640px;
+      margin-bottom: 0;
+      color: var(--muted);
+      font-size: 1.03rem;
+      line-height: 1.55;
+    }
+
+    .launch-chip {
+      flex: 0 0 auto;
+      padding: 9px 13px;
+      border: 1px solid #b9d8f2;
+      border-radius: 999px;
+      color: #14588f;
+      background: #e9f5ff;
+      font-size: 0.9rem;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .workspace {
+      display: grid;
+      grid-template-columns: minmax(268px, 0.76fr) minmax(0, 1.74fr);
+      gap: 20px;
+      align-items: start;
+    }
+
+    .panel,
+    .metric-card {
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      background: var(--surface);
+      box-shadow: var(--shadow);
+    }
+
+    .control-panel {
+      padding: 24px;
+    }
+
+    .panel-heading {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+
+    h2 {
+      margin-bottom: 0;
+      font-size: 1.16rem;
+      letter-spacing: -0.02em;
+    }
+
+    .hint {
+      color: var(--muted);
+      font-size: 0.82rem;
+      white-space: nowrap;
+    }
+
+    .control-group + .control-group {
+      margin-top: 26px;
+    }
+
+    .control-label {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      margin-bottom: 10px;
+      font-size: 0.95rem;
+      font-weight: 760;
+    }
+
+    .control-symbol {
+      color: var(--muted);
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: 1.06em;
+      font-style: italic;
+    }
+
+    .control-value {
+      color: var(--launch);
+      font-variant-numeric: tabular-nums;
+      white-space: nowrap;
+    }
+
+    .input-row {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 92px;
+      gap: 13px;
+      align-items: center;
+    }
+
+    input[type="range"] {
+      width: 100%;
+      accent-color: var(--launch);
+    }
+
+    input[type="number"] {
+      width: 100%;
+      min-height: 40px;
+      padding: 7px 9px;
+      border: 1px solid #bdcad9;
+      border-radius: 9px;
+      color: var(--ink);
+      background: #fff;
+      font-variant-numeric: tabular-nums;
+    }
+
+    input:focus-visible,
+    button:focus-visible {
+      outline: 3px solid rgba(28, 120, 192, 0.35);
+      outline-offset: 2px;
+    }
+
+    .control-note {
+      margin: 9px 0 0;
+      color: var(--muted);
+      font-size: 0.79rem;
+      line-height: 1.45;
+    }
+
+    .button-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 29px;
+      padding-top: 22px;
+      border-top: 1px solid var(--border);
+    }
+
+    .button {
+      min-height: 40px;
+      padding: 8px 14px;
+      border: 1px solid transparent;
+      border-radius: 9px;
+      font-size: 0.9rem;
+      font-weight: 750;
+    }
+
+    .button-primary {
+      color: #fff;
+      background: var(--launch);
+    }
+
+    .button-primary:hover {
+      background: #12588f;
+    }
+
+    .button-secondary {
+      border-color: #b9c9d9;
+      color: #29445e;
+      background: #fff;
+    }
+
+    .button-secondary:hover {
+      background: #f2f7fc;
+    }
+
+    .side-note {
+      margin: 20px 0 0;
+      padding: 13px 14px;
+      border-radius: 11px;
+      color: #2f546d;
+      background: #edf7fc;
+      font-size: 0.84rem;
+      line-height: 1.5;
+    }
+
+    .side-note strong {
+      color: #183b56;
+    }
+
+    .visual-column {
+      min-width: 0;
+    }
+
+    .metrics {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 14px;
+      margin-bottom: 18px;
+    }
+
+    .metric-card {
+      min-height: 119px;
+      padding: 16px 17px;
+      box-shadow: 0 10px 24px rgba(30, 62, 96, 0.08);
+    }
+
+    .metric-label {
+      margin: 0 0 8px;
+      color: var(--muted);
+      font-size: 0.78rem;
+      font-weight: 720;
+      line-height: 1.25;
+    }
+
+    .metric-value {
+      margin: 0;
+      color: var(--ink);
+      font-size: clamp(1.24rem, 2.2vw, 1.72rem);
+      font-weight: 800;
+      letter-spacing: -0.04em;
+      line-height: 1.1;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .metric-unit {
+      color: var(--muted);
+      font-size: 0.78rem;
+      font-weight: 650;
+      letter-spacing: 0;
+    }
+
+    .metric-detail {
+      margin: 7px 0 0;
+      color: var(--muted);
+      font-size: 0.75rem;
+    }
+
+    .graph-panel {
+      padding: 20px 20px 17px;
+      overflow: hidden;
+    }
+
+    .graph-heading {
+      display: flex;
+      align-items: start;
+      justify-content: space-between;
+      gap: 18px;
+      margin-bottom: 9px;
+    }
+
+    .graph-heading h2 {
+      margin-bottom: 3px;
+    }
+
+    .graph-subtitle {
+      margin: 0;
+      color: var(--muted);
+      font-size: 0.83rem;
+      line-height: 1.45;
+    }
+
+    .scale-badge {
+      flex: 0 0 auto;
+      padding: 6px 9px;
+      border-radius: 8px;
+      color: var(--success);
+      background: #e8f7f1;
+      font-size: 0.74rem;
+      font-weight: 750;
+      white-space: nowrap;
+    }
+
+    .formula-box {
+      margin: 16px 0 10px;
+      padding: 13px 15px;
+      border: 1px solid #d9e6f3;
+      border-radius: 11px;
+      background: var(--surface-soft);
+    }
+
+    .formula {
+      margin: 0;
+      color: #203d59;
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: clamp(1.02rem, 1.8vw, 1.22rem);
+      line-height: 1.55;
+    }
+
+    .formula sup {
+      font-size: 0.72em;
+    }
+
+    .formula-context {
+      margin: 5px 0 0;
+      color: var(--muted);
+      font-size: 0.79rem;
+      line-height: 1.45;
+    }
+
+    .plot-wrap {
+      position: relative;
+      min-height: 325px;
+      margin-top: 2px;
+    }
+
+    #trajectoryGraph {
+      display: block;
+      width: 100%;
+      height: auto;
+      min-height: 325px;
+    }
+
+    #trajectoryGraph .plot-frame {
+      fill: #fbfdff;
+      stroke: #cfdae6;
+      stroke-width: 1.1;
+    }
+
+    #trajectoryGraph .grid-line {
+      stroke: var(--grid);
+      stroke-width: 1;
+    }
+
+    #trajectoryGraph .axis-line {
+      stroke: var(--axis);
+      stroke-width: 1.6;
+    }
+
+    #trajectoryGraph .tick-label,
+    #trajectoryGraph .axis-label,
+    #trajectoryGraph .marker-label {
+      fill: #53677c;
+      font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+    }
+
+    #trajectoryGraph .tick-label {
+      font-size: 13px;
+    }
+
+    #trajectoryGraph .axis-label {
+      fill: #33495e;
+      font-size: 14px;
+      font-weight: 700;
+    }
+
+    #trajectoryGraph .trajectory-line {
+      fill: none;
+      stroke: var(--trajectory);
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      stroke-width: 4.2;
+    }
+
+    #trajectoryGraph .trajectory-area {
+      fill: rgba(224, 82, 99, 0.08);
+    }
+
+    #trajectoryGraph .launch-point {
+      fill: var(--launch);
+      stroke: #fff;
+      stroke-width: 2.5;
+    }
+
+    #trajectoryGraph .landing-point {
+      fill: var(--trajectory-dark);
+      stroke: #fff;
+      stroke-width: 2.5;
+    }
+
+    #trajectoryGraph .apex-point {
+      fill: var(--apex);
+      stroke: #fff;
+      stroke-width: 2.5;
+    }
+
+    #trajectoryGraph .marker-label {
+      font-size: 12px;
+      font-weight: 700;
+      paint-order: stroke;
+      stroke: #fff;
+      stroke-linejoin: round;
+      stroke-width: 4px;
+    }
+
+    .graph-footnote {
+      min-height: 24px;
+      margin: 4px 0 0;
+      color: var(--muted);
+      font-size: 0.8rem;
+      line-height: 1.45;
+    }
+
+    .graph-footnote.is-warning {
+      color: #8c4e16;
+    }
+
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+
+    @media (max-width: 980px) {
+      .workspace {
+        grid-template-columns: 1fr;
+      }
+
+      .control-panel {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 18px;
+      }
+
+      .control-panel .panel-heading,
+      .control-panel .button-row,
+      .control-panel .side-note {
+        grid-column: 1 / -1;
+      }
+
+      .control-panel .panel-heading {
+        margin-bottom: 0;
+      }
+
+      .control-group + .control-group {
+        margin-top: 0;
+      }
+
+      .button-row {
+        margin-top: 2px;
+      }
+
+      .side-note {
+        margin-top: 0;
+      }
+    }
+
+    @media (max-width: 680px) {
+      .app-shell {
+        width: min(100% - 22px, 1280px);
+        padding-top: 22px;
+      }
+
+      .app-header,
+      .graph-heading {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+
+      .launch-chip {
+        display: none;
+      }
+
+      .control-panel {
+        display: block;
+      }
+
+      .control-group + .control-group {
+        margin-top: 26px;
+      }
+
+      .metrics {
+        grid-template-columns: 1fr;
+      }
+
+      .metric-card {
+        min-height: 98px;
+      }
+
+      .graph-panel,
+      .control-panel {
+        padding: 18px;
+        border-radius: 14px;
+      }
+
+      .scale-badge {
+        margin-top: -3px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="app-shell">
+    <header class="app-header">
+      <div>
+        <p class="eyebrow">Physics playground</p>
+        <h1>Projectile Lab</h1>
+        <p class="intro">Adjust the launch and watch the parabolic path, maximum height, flight time, and range change together.</p>
+      </div>
+      <div class="launch-chip">No air resistance</div>
+    </header>
+
+    <section class="workspace" aria-label="Projectile trajectory simulator">
+      <aside class="panel control-panel" aria-labelledby="controls-title">
+        <div class="panel-heading">
+          <h2 id="controls-title">Launch controls</h2>
+          <span class="hint">SI units</span>
+        </div>
+
+        <div class="control-group">
+          <label class="control-label" for="speedRange">
+            <span>Initial speed <span class="control-symbol">u</span></span>
+            <output id="speedOutput" class="control-value">30.0 m/s</output>
+          </label>
+          <div class="input-row">
+            <input id="speedRange" type="range" min="1" max="100" step="0.1" value="30" aria-describedby="speedNote">
+            <input id="speedNumber" type="number" min="1" max="100" step="0.1" value="30" aria-label="Initial speed in metres per second">
+          </div>
+          <p id="speedNote" class="control-note">1–100 m/s</p>
+        </div>
+
+        <div class="control-group">
+          <label class="control-label" for="angleRange">
+            <span>Launch angle <span class="control-symbol">θ</span></span>
+            <output id="angleOutput" class="control-value">45.0°</output>
+          </label>
+          <div class="input-row">
+            <input id="angleRange" type="range" min="0" max="90" step="0.1" value="45" aria-describedby="angleNote">
+            <input id="angleNumber" type="number" min="0" max="90" step="0.1" value="45" aria-label="Launch angle in degrees">
+          </div>
+          <p id="angleNote" class="control-note">Measured from the horizontal</p>
+        </div>
+
+        <div class="control-group">
+          <label class="control-label" for="gravityRange">
+            <span>Gravity <span class="control-symbol">g</span></span>
+            <output id="gravityOutput" class="control-value">9.8 m/s²</output>
+          </label>
+          <div class="input-row">
+            <input id="gravityRange" type="range" min="0.1" max="30" step="0.1" value="9.8" aria-describedby="gravityNote">
+            <input id="gravityNumber" type="number" min="0.1" max="30" step="0.1" value="9.8" aria-label="Gravity in metres per second squared">
+          </div>
+          <p id="gravityNote" class="control-note">0.1–30 m/s²</p>
+        </div>
+
+        <div class="button-row">
+          <button id="defaultsButton" class="button button-primary" type="button">Restore defaults</button>
+          <button id="rangeAngleButton" class="button button-secondary" type="button">Set angle to 45°</button>
+        </div>
+
+        <p class="side-note"><strong>Try this:</strong> hold <span class="control-symbol">u</span> and <span class="control-symbol">g</span> constant, then sweep <span class="control-symbol">θ</span>. The range peaks at 45° for a same-level landing.</p>
+      </aside>
+
+      <div class="visual-column">
+        <section class="metrics" aria-label="Same-level launch and landing results">
+          <article class="metric-card">
+            <p class="metric-label">Maximum height</p>
+            <p class="metric-value"><span id="heightValue">22.96</span> <span class="metric-unit">m</span></p>
+            <p class="metric-detail">H = u²sin²θ / 2g</p>
+          </article>
+          <article class="metric-card">
+            <p class="metric-label">Time of flight</p>
+            <p class="metric-value"><span id="timeValue">4.33</span> <span class="metric-unit">s</span></p>
+            <p class="metric-detail">T = 2usinθ / g</p>
+          </article>
+          <article class="metric-card">
+            <p class="metric-label">Horizontal range</p>
+            <p class="metric-value"><span id="rangeValue">91.84</span> <span class="metric-unit">m</span></p>
+            <p class="metric-detail">R = u²sin(2θ) / g</p>
+          </article>
+        </section>
+
+        <section class="panel graph-panel" aria-labelledby="plot-title">
+          <div class="graph-heading">
+            <div>
+              <h2 id="plot-title">Trajectory</h2>
+              <p class="graph-subtitle">Launch and landing are at the same height. Axes show distance in metres.</p>
+            </div>
+            <span class="scale-badge">Live graph</span>
+          </div>
+
+          <div class="formula-box">
+            <p class="formula" aria-label="y equals x tangent theta minus g x squared divided by two u squared cosine squared theta">
+              y = x tan(θ) − <span>g x<sup>2</sup></span> / <span>2u<sup>2</sup>cos<sup>2</sup>(θ)</span>
+            </p>
+            <p id="formulaContext" class="formula-context">Using u = 30.0 m/s, θ = 45.0°, and g = 9.8 m/s².</p>
+          </div>
+
+          <div class="plot-wrap">
+            <svg id="trajectoryGraph" viewBox="0 0 920 510" role="img" aria-live="polite"></svg>
+          </div>
+          <p id="graphFootnote" class="graph-footnote">The curve is sampled from launch to landing.</p>
+          <p id="liveSummary" class="sr-only" aria-live="polite"></p>
+        </section>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    (() => {
+      const defaults = Object.freeze({ speed: 30, angle: 45, gravity: 9.8 });
+      const state = { ...defaults };
+      const svgNamespace = "http://www.w3.org/2000/svg";
+      const chart = document.getElementById("trajectoryGraph");
+      const formulaContext = document.getElementById("formulaContext");
+      const graphFootnote = document.getElementById("graphFootnote");
+      const liveSummary = document.getElementById("liveSummary");
+      const heightValue = document.getElementById("heightValue");
+      const timeValue = document.getElementById("timeValue");
+      const rangeValue = document.getElementById("rangeValue");
+
+      const controls = {
+        speed: {
+          range: document.getElementById("speedRange"),
+          number: document.getElementById("speedNumber"),
+          output: document.getElementById("speedOutput"),
+          min: 1,
+          max: 100,
+          step: 0.1,
+          unit: "m/s"
+        },
+        angle: {
+          range: document.getElementById("angleRange"),
+          number: document.getElementById("angleNumber"),
+          output: document.getElementById("angleOutput"),
+          min: 0,
+          max: 90,
+          step: 0.1,
+          unit: "°"
+        },
+        gravity: {
+          range: document.getElementById("gravityRange"),
+          number: document.getElementById("gravityNumber"),
+          output: document.getElementById("gravityOutput"),
+          min: 0.1,
+          max: 30,
+          step: 0.1,
+          unit: "m/s²"
+        }
+      };
+
+      function clamp(value, min, max) {
+        return Math.min(Math.max(value, min), max);
+      }
+
+      function precisionFor(step) {
+        const decimal = String(step).split(".")[1];
+        return decimal ? decimal.length : 0;
+      }
+
+      function normaliseValue(value, control) {
+        const bounded = clamp(value, control.min, control.max);
+        const steps = Math.round((bounded - control.min) / control.step);
+        const snapped = control.min + steps * control.step;
+        return Number(snapped.toFixed(precisionFor(control.step)));
+      }
+
+      function formatNumber(value, maximumFractionDigits = 2) {
+        const safeValue = Math.abs(value) < 0.0000001 ? 0 : value;
+        return new Intl.NumberFormat("en-US", {
+          maximumFractionDigits,
+          minimumFractionDigits: 0
+        }).format(safeValue);
+      }
+
+      function formatControlValue(value, unit) {
+        return `${value.toFixed(1)}${unit === "°" ? "" : " "}${unit}`;
+      }
+
+      function calculate() {
+        const angleRadians = state.angle * Math.PI / 180;
+        const sine = Math.sin(angleRadians);
+        const cosine = Math.cos(angleRadians);
+        const maximumHeight = (state.speed ** 2 * sine ** 2) / (2 * state.gravity);
+        const flightTime = (2 * state.speed * sine) / state.gravity;
+        const rawRange = (state.speed ** 2 * Math.sin(2 * angleRadians)) / state.gravity;
+        const horizontalRange = Math.abs(rawRange) < 0.0000001 ? 0 : rawRange;
+        const verticalLaunch = Math.abs(cosine) < 0.0000001;
+
+        return {
+          angleRadians,
+          sine,
+          cosine,
+          maximumHeight,
+          flightTime,
+          horizontalRange,
+          verticalLaunch
+        };
+      }
+
+      function createSvgElement(tagName, attributes = {}, textContent = null) {
+        const element = document.createElementNS(svgNamespace, tagName);
+        Object.entries(attributes).forEach(([name, value]) => element.setAttribute(name, value));
+        if (textContent !== null) {
+          element.textContent = textContent;
+        }
+        return element;
+      }
+
+      function appendSvg(parent, tagName, attributes = {}, textContent = null) {
+        const element = createSvgElement(tagName, attributes, textContent);
+        parent.appendChild(element);
+        return element;
+      }
+
+      function niceStep(rawStep) {
+        const exponent = 10 ** Math.floor(Math.log10(rawStep));
+        const fraction = rawStep / exponent;
+        let niceFraction = 1;
+
+        if (fraction >= 7.5) {
+          niceFraction = 10;
+        } else if (fraction >= 3.5) {
+          niceFraction = 5;
+        } else if (fraction >= 2) {
+          niceFraction = 2.5;
+        } else if (fraction >= 1.5) {
+          niceFraction = 2;
+        }
+
+        return niceFraction * exponent;
+      }
+
+      function getTicks(minimum, maximum, targetCount = 7) {
+        const step = niceStep((maximum - minimum) / targetCount);
+        const firstTick = Math.ceil(minimum / step) * step;
+        const ticks = [];
+
+        for (let value = firstTick; value <= maximum + step * 0.001; value += step) {
+          ticks.push(Math.abs(value) < step * 0.0001 ? 0 : Number(value.toPrecision(12)));
+          if (ticks.length > 25) {
+            break;
+          }
+        }
+
+        return ticks;
+      }
+
+      function getChartBounds(values) {
+        const height = values.maximumHeight;
+        const range = values.horizontalRange;
+        let xMinimum;
+        let xMaximum;
+
+        if (values.verticalLaunch) {
+          const sideSpace = Math.max(5, height * 0.18);
+          xMinimum = -sideSpace;
+          xMaximum = sideSpace;
+        } else if (range < 0.02) {
+          xMinimum = -5;
+          xMaximum = 5;
+        } else {
+          const horizontalPadding = Math.max(1.5, range * 0.08);
+          xMinimum = -horizontalPadding;
+          xMaximum = range + horizontalPadding;
+        }
+
+        const verticalPadding = Math.max(1.2, height * 0.13, range * 0.03);
+        return {
+          xMinimum,
+          xMaximum,
+          yMinimum: -verticalPadding,
+          yMaximum: Math.max(5, height + verticalPadding)
+        };
+      }
+
+      function addMarker(parent, x, y, pointClass, label, labelOffsetX, labelOffsetY, anchor = "start") {
+        appendSvg(parent, "circle", { cx: x, cy: y, r: 6, class: pointClass });
+        appendSvg(parent, "text", {
+          x: x + labelOffsetX,
+          y: y + labelOffsetY,
+          class: "marker-label",
+          "text-anchor": anchor
+        }, label);
+      }
+
+      function renderChart(values) {
+        chart.replaceChildren();
+
+        const dimensions = { width: 920, height: 510, left: 85, right: 34, top: 32, bottom: 72 };
+        const plotWidth = dimensions.width - dimensions.left - dimensions.right;
+        const plotHeight = dimensions.height - dimensions.top - dimensions.bottom;
+        const bounds = getChartBounds(values);
+        const xToScreen = (x) => dimensions.left + ((x - bounds.xMinimum) / (bounds.xMaximum - bounds.xMinimum)) * plotWidth;
+        const yToScreen = (y) => dimensions.top + plotHeight - ((y - bounds.yMinimum) / (bounds.yMaximum - bounds.yMinimum)) * plotHeight;
+        const xTicks = getTicks(bounds.xMinimum, bounds.xMaximum);
+        const yTicks = getTicks(bounds.yMinimum, bounds.yMaximum);
+
+        appendSvg(chart, "title", {}, "Projectile trajectory graph");
+        appendSvg(chart, "desc", {}, `Trajectory for initial speed ${state.speed} metres per second, launch angle ${state.angle} degrees, and gravity ${state.gravity} metres per second squared.`);
+
+        const definitions = appendSvg(chart, "defs");
+        const clipPath = appendSvg(definitions, "clipPath", { id: "plotClip" });
+        appendSvg(clipPath, "rect", {
+          x: dimensions.left,
+          y: dimensions.top,
+          width: plotWidth,
+          height: plotHeight
+        });
+
+        appendSvg(chart, "rect", {
+          x: dimensions.left,
+          y: dimensions.top,
+          width: plotWidth,
+          height: plotHeight,
+          rx: 4,
+          class: "plot-frame"
+        });
+
+        const gridGroup = appendSvg(chart, "g", { "aria-hidden": "true" });
+        xTicks.forEach((tick) => {
+          const x = xToScreen(tick);
+          appendSvg(gridGroup, "line", {
+            x1: x,
+            y1: dimensions.top,
+            x2: x,
+            y2: dimensions.top + plotHeight,
+            class: "grid-line"
+          });
+          appendSvg(gridGroup, "text", {
+            x,
+            y: dimensions.top + plotHeight + 23,
+            class: "tick-label",
+            "text-anchor": "middle"
+          }, formatNumber(tick, 1));
+        });
+
+        yTicks.forEach((tick) => {
+          const y = yToScreen(tick);
+          appendSvg(gridGroup, "line", {
+            x1: dimensions.left,
+            y1: y,
+            x2: dimensions.left + plotWidth,
+            y2: y,
+            class: "grid-line"
+          });
+          appendSvg(gridGroup, "text", {
+            x: dimensions.left - 12,
+            y: y + 4,
+            class: "tick-label",
+            "text-anchor": "end"
+          }, formatNumber(tick, 1));
+        });
+
+        const zeroX = xToScreen(0);
+        const zeroY = yToScreen(0);
+        if (zeroY >= dimensions.top && zeroY <= dimensions.top + plotHeight) {
+          appendSvg(chart, "line", {
+            x1: dimensions.left,
+            y1: zeroY,
+            x2: dimensions.left + plotWidth,
+            y2: zeroY,
+            class: "axis-line"
+          });
+        }
+        if (zeroX >= dimensions.left && zeroX <= dimensions.left + plotWidth) {
+          appendSvg(chart, "line", {
+            x1: zeroX,
+            y1: dimensions.top,
+            x2: zeroX,
+            y2: dimensions.top + plotHeight,
+            class: "axis-line"
+          });
+        }
+
+        appendSvg(chart, "text", {
+          x: dimensions.left + plotWidth / 2,
+          y: dimensions.height - 17,
+          class: "axis-label",
+          "text-anchor": "middle"
+        }, "horizontal distance, x (m)");
+
+        appendSvg(chart, "text", {
+          x: 22,
+          y: dimensions.top + plotHeight / 2,
+          class: "axis-label",
+          "text-anchor": "middle",
+          transform: `rotate(-90 22 ${dimensions.top + plotHeight / 2})`
+        }, "height, y (m)");
+
+        const trajectoryGroup = appendSvg(chart, "g", { "clip-path": "url(#plotClip)" });
+        const pointCount = values.flightTime > 0.000001 ? 240 : 1;
+        const trajectoryPoints = [];
+
+        for (let index = 0; index <= pointCount; index += 1) {
+          const time = values.flightTime * (index / pointCount);
+          const x = state.speed * values.cosine * time;
+          const y = Math.max(0, state.speed * values.sine * time - 0.5 * state.gravity * time ** 2);
+          trajectoryPoints.push({ x, y });
+        }
+
+        if (trajectoryPoints.length > 1) {
+          const lineData = trajectoryPoints.map((point, index) => `${index === 0 ? "M" : "L"}${xToScreen(point.x).toFixed(2)} ${yToScreen(point.y).toFixed(2)}`).join(" ");
+          const groundY = yToScreen(0).toFixed(2);
+          const areaData = `${lineData} L${xToScreen(trajectoryPoints.at(-1).x).toFixed(2)} ${groundY} L${xToScreen(trajectoryPoints[0].x).toFixed(2)} ${groundY} Z`;
+          appendSvg(trajectoryGroup, "path", { d: areaData, class: "trajectory-area" });
+          appendSvg(trajectoryGroup, "path", { d: lineData, class: "trajectory-line" });
+        }
+
+        const launchX = xToScreen(0);
+        const launchY = yToScreen(0);
+        addMarker(chart, launchX, launchY, "launch-point", "launch", 10, -11);
+
+        if (values.maximumHeight > 0.02) {
+          const apexTime = (state.speed * values.sine) / state.gravity;
+          const apexX = state.speed * values.cosine * apexTime;
+          const apexY = values.maximumHeight;
+          addMarker(chart, xToScreen(apexX), yToScreen(apexY), "apex-point", "maximum height", 0, -13, "middle");
+        }
+
+        if (values.flightTime > 0.000001 && !values.verticalLaunch && values.horizontalRange > 0.02) {
+          addMarker(chart, xToScreen(values.horizontalRange), yToScreen(0), "landing-point", "landing", -10, -11, "end");
+        }
+      }
+
+      function updateControls() {
+        Object.entries(controls).forEach(([name, control]) => {
+          control.range.value = state[name];
+          control.number.value = state[name].toFixed(1);
+          control.output.value = formatControlValue(state[name], control.unit);
+          control.output.textContent = formatControlValue(state[name], control.unit);
+        });
+      }
+
+      function updateFormulaAndFootnote(values) {
+        formulaContext.textContent = `Using u = ${state.speed.toFixed(1)} m/s, θ = ${state.angle.toFixed(1)}°, and g = ${state.gravity.toFixed(1)} m/s².`;
+
+        if (values.verticalLaunch) {
+          graphFootnote.textContent = "At θ = 90°, cos θ = 0, so y(x) is undefined. The vertical path is safely drawn from x(t) and y(t).";
+          graphFootnote.classList.add("is-warning");
+        } else if (values.flightTime < 0.000001) {
+          graphFootnote.textContent = "At θ = 0°, the projectile is already at landing height, so same-level flight time and range are zero.";
+          graphFootnote.classList.add("is-warning");
+        } else {
+          graphFootnote.textContent = "The curve is sampled from launch to landing. Air resistance is ignored.";
+          graphFootnote.classList.remove("is-warning");
+        }
+      }
+
+      function updateReadouts(values) {
+        heightValue.textContent = formatNumber(values.maximumHeight);
+        timeValue.textContent = formatNumber(values.flightTime);
+        rangeValue.textContent = formatNumber(values.horizontalRange);
+        liveSummary.textContent = `Maximum height ${formatNumber(values.maximumHeight)} metres, time of flight ${formatNumber(values.flightTime)} seconds, and horizontal range ${formatNumber(values.horizontalRange)} metres.`;
+      }
+
+      function render() {
+        const values = calculate();
+        updateControls();
+        updateReadouts(values);
+        updateFormulaAndFootnote(values);
+        renderChart(values);
+      }
+
+      function bindControl(name, control) {
+        const applyValue = (rawValue) => {
+          if (rawValue === "") {
+            return;
+          }
+          const numericValue = Number(rawValue);
+          if (!Number.isFinite(numericValue)) {
+            return;
+          }
+          state[name] = normaliseValue(numericValue, control);
+          render();
+        };
+
+        control.range.addEventListener("input", (event) => applyValue(event.target.value));
+        control.number.addEventListener("input", (event) => applyValue(event.target.value));
+        control.number.addEventListener("change", () => {
+          control.number.value = state[name].toFixed(1);
+        });
+      }
+
+      Object.entries(controls).forEach(([name, control]) => bindControl(name, control));
+
+      document.getElementById("defaultsButton").addEventListener("click", () => {
+        Object.assign(state, defaults);
+        render();
+      });
+
+      document.getElementById("rangeAngleButton").addEventListener("click", () => {
+        state.angle = 45;
+        render();
+      });
+
+      render();
+    })();
+  </script>
+</body>
+</html>
